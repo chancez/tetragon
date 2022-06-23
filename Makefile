@@ -19,6 +19,8 @@ GO_GCFLAGS ?= ""
 GO_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'"
 GO_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -linkmode external -extldflags -static"
 GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -s -w"
+IMAGE_PLATFORMS = linux/amd64
+IMAGE_BUILD_ARGS = --platform $(IMAGE_PLATFORMS)
 
 
 GOLANGCILINT_WANT_VERSION = 1.45.2
@@ -69,8 +71,8 @@ ksyms:
 	$(GO) build ./cmd/ksyms/
 
 tetragon-image:
-	GOOS=linux GOARCH=amd64 $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetragon/
-	GOOS=linux GOARCH=amd64 $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetra/
+	GOOS=linux $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetragon/
+	GOOS=linux $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetra/
 
 tetragon-operator-image:
 	CGO_ENABLED=0 $(GO) build -ldflags=$(GO_OPERATOR_IMAGE_LDFLAGS) -mod=vendor -o tetragon-operator ./operator
@@ -117,22 +119,22 @@ lint:
 	golint -set_exit_status $$(go list ./...)
 
 image:
-	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build $(IMAGE_BUILD_ARGS) -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
 image-operator:
-	$(CONTAINER_ENGINE) build -f operator.Dockerfile -t "cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build $(IMAGE_BUILD_ARGS) -f operator.Dockerfile -t "cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
 image-test:
-	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build $(IMAGE_BUILD_ARGS) -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-test:$(DOCKER_IMAGE_TAG)"
 
 image-codegen:
-	$(CONTAINER_ENGINE) build -f Dockerfile.codegen -t "cilium/tetragon-codegen:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build $(IMAGE_BUILD_ARGS) -f Dockerfile.codegen -t "cilium/tetragon-codegen:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-codegen:$(DOCKER_IMAGE_TAG)"
 
@@ -173,7 +175,7 @@ check:
 	golangci-lint run
 else
 check:
-	$(CONTAINER_ENGINE) build -t golangci-lint:tetragon . -f Dockerfile.golangci-lint
+	$(CONTAINER_ENGINE) build $(IMAGE_BUILD_ARGS) -t golangci-lint:tetragon . -f Dockerfile.golangci-lint
 	$(CONTAINER_ENGINE) run --rm -v `pwd`:/app -w /app golangci-lint:tetragon golangci-lint run
 endif
 
@@ -183,7 +185,7 @@ clang-format:
 	find bpf $(FORMAT_FIND_FLAGS) | xargs -n 1000 clang-format -i -style=file
 else
 clang-format:
-	$(CONTAINER_ENGINE) build -f Dockerfile.clang-format -t "cilium/clang-format:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build $(IMAGE_BUILD_ARGS) -f Dockerfile.clang-format -t "cilium/clang-format:${DOCKER_IMAGE_TAG}" .
 	find bpf $(FORMAT_FIND_FLAGS) | xargs -n 1000 \
 		$(CONTAINER_ENGINE) run -v $(shell realpath .):/tetragon "cilium/clang-format:${DOCKER_IMAGE_TAG}" -i -style=file
 endif
