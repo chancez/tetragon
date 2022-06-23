@@ -98,6 +98,8 @@ func dumpSyscalls(fname string) {
 		if (typSym.Size != argSym.Size) || (typSym.Size%8 != 0) {
 			panic("invalid symbol size")
 		}
+		fmt.Printf("%s: %#v\n", name, typSym)
+		fmt.Printf("%s: %#v\n", name, argSym)
 
 		arr := make([]SyscallArg, 0)
 		n := typSym.Size / 8
