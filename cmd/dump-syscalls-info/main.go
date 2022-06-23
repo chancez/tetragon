@@ -82,6 +82,9 @@ func dumpSyscalls(fname string) {
 		}
 		brd := bufio.NewReader(secRodataReader)
 		data, _ := brd.ReadBytes(0)
+		if len(data) == 0 {
+			return ""
+		}
 		return string(data[:len(data)-1])
 	}
 
